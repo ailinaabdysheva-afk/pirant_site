@@ -3,7 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": { "dev": "vite", "build": "tsc && vite build", "preview": "vite preview" },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:server": "cd server && npm install",
+    "build:all": "npm run build && npm run build:server",
+    "start": "cd server && npm start",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "framer-motion": "^11.11.0",
     "lucide-react": "^0.460.0",

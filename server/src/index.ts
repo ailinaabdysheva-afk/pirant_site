@@ -59,5 +59,41 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 process.on('unhandledRejection', (e) => console.error('unhandledRejection:', e));
 
 await migrate();
+
+/* начальная инициализация данных, если БД пуста */
+try {
+  const has = (await pool.query('select count(*)::int as n from directions')).rows[0]?.n > 0;
+  if (!has) {
+    const seedPath = resolve(process.cwd(), 'seed', 'seed.json');
+    if (existsSync(seedPath)) {
+      console.log('Инициализация начальных данных (seed)...');
+      const { readFileSync } = await import('node:fs');
+      const seedData = JSON.parse(readFileSync(seedPath, 'utf8'));
+      const { importContent } = await import('./seed.js');
+      await importContent(seedData, { withInquiries: false });
+      console.log('Начальные данные успешно загружены.');
+    }
+  }
+} catch (e) {
+  console.error('Ошибка автоматического seed:', e);
+}
+
+/* создание суперадмина при наличии переменной ADMIN_PASSWORD */
+if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.length >= 10) {
+  try {
+    const login = process.env.ADMIN_LOGIN || 'admin';
+    const password = process.env.ADMIN_PASSWORD;
+    const { hashPassword, uid } = await import('./crypto.js');
+    const ex = await pool.query('select id from users where lower(login) = lower($1)', [login]);
+    if (ex.rowCount === 0) {
+      await pool.query("insert into users(id, login, name, role, password_hash) values ($1,$2,'Суперадминистратор','superadmin',$3)", [uid('u'), login, await hashPassword(password)]);
+      console.log(`Суперадминистратор «${login}» создан.`);
+    }
+  } catch (e) {
+    console.error('Ошибка создания суперадмина:', e);
+  }
+}
+
 app.listen(config.port, () => console.log(`PIRANT server: порт ${config.port}`));
 void startTelegramPolling();
+

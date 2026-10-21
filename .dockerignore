@@ -1,0 +1,9 @@
+node_modules
+dist
+server/node_modules
+server/uploads
+server/.env
+.git
+.gitignore
+README.md
+newsite.zip
